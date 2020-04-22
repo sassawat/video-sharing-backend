@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request, send_file
+from passlib.hash import pbkdf2_sha256 as sha256
 import mysql.connector
 import datetime
+
 app = Flask(__name__)
 
 config = {
@@ -25,6 +27,7 @@ else:
     cursor = cnx.cursor()
 
 def get_data_in_format(sql, args):
+    res = ''
     data = []
     if args == '':
         cursor.execute(sql)
@@ -40,7 +43,7 @@ def get_data_in_format(sql, args):
             data.append(res)
         return data
     else:
-        cursor.execute(sql, (args))
+        cursor.execute(sql, args)
         for row in cursor:
             res = {
                 'id': row[0],
@@ -171,17 +174,22 @@ def user():
 
     if request.method == "POST":
         _data = request.json
-        print (_data)
         sql = """INSERT INTO `users`(`id`, `username`, `password`, `firstName`, `lastName`, `token`)
                 VALUES (NULL, %s, %s, %s, %s, %s)"""
         args = (
-            _data["username"], _data["password"], _data["firstname"], _data["lastname"], '',
+            _data["username"], _data["password"], _data["firstname"], _data["lastname"], sha256.hash(_data["password"]),
         )
-        cursor.execute(sql, args)
-        cnx.commit()
+
         data = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": _data["username"]})
 
-        return data, 201
+        if data != '':
+            return {'message': 'User {} already exists'.format(data['username'])}
+
+        cursor.execute(sql, args)
+        cnx.commit()
+        user = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": _data["username"]})
+
+        return {"username": user["username"], "token": user["token"]}, 201
     
     if request.method == "PUT":
         _data = request.json
@@ -211,15 +219,15 @@ def user_auth():
 
     if request.method == 'POST':
         data = request.json
-        res = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": data["username"]})
+        user = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": data["username"]})
 
-        if res:
-            if data["password"] == res['password']:
-                return res, 200
+        if user:
+            if sha256.verify(data["password"], user['token']):
+                return {"message": 'Logged in as {}'.format(user["username"]), "token": user["token"]}, 200
             else:
-                return ('Username or password is incorrect'), 400
+                return {"message": 'Username or password is incorrect'}, 400
         else:
-            return ('Username or password is incorrect'), 400
+            return {"message": 'Username or password is incorrect'}, 400
 
 
 if __name__ == '__main__':
