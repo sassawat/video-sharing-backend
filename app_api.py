@@ -24,6 +24,34 @@ else:
     print ("Connect database successed.")
     cursor = cnx.cursor()
 
+def get_data_in_format(sql, args):
+    data = []
+    if args == '':
+        cursor.execute(sql)
+        for row in cursor:
+            res = {
+                'id': row[0],
+                'username': row[1],
+                'password': row[2],
+                'firstName': row[3],
+                'lastName': row[4],
+                'token': row[5],
+            }
+            data.append(res)
+        return data
+    else:
+        cursor.execute(sql, (args))
+        for row in cursor:
+            res = {
+                'id': row[0],
+                'username': row[1],
+                'password': row[2],
+                'firstName': row[3],
+                'lastName': row[4],
+                'token': row[5],
+            }
+        return res
+
 @app.route('/api')
 def hello_world():
     return jsonify({"api": ["/videos", "/video", "/watch", "/search", "/users", "/user", "/user/authentication"]})
@@ -49,7 +77,6 @@ def videos():
     # cursor.close()
 
     return jsonify(data)
-
 
 @app.route('/video', methods=['GET', 'POST', 'PUT','DELETE'])
 def video():
@@ -77,7 +104,7 @@ def video():
             
     if request.method == "POST":
         _data = request.json
-        query = """INSERT INTO `videos`(`id`, `name`, `album`, `artist`, `duration`, `description`, `path`, `privilege`)
+        sql = """INSERT INTO `videos`(`id`, `name`, `album`, `artist`, `duration`, `description`, `path`, `privilege`)
                 VALUES (NULL, %s, %s, %s, %s, %s, %s, 'general')"""           
         args = (
             _data["name"],
@@ -88,22 +115,23 @@ def video():
             "C:\\Users\\tong_\\Documents\\Github\\video-sharing-web-backend_1\\src\\asset\\video\\"+_data["name"]+".mp4"
         )
 
-        cursor.execute(query, args)
+        cursor.execute(sql, args)
         cnx.commit()
 
         return 'ok', 200
 
     if request.method == "DELETE":
-        data.append("DELETE")
+        id = request.args['id']
 
+        cursor.execute("DELETE FROM videos WHERE id=%s" %id)
 
+        return 'ok', 200
 
 @app.route('/watch', methods=['GET'])
 def watch():
     path = request.args['path']
 
     return send_file(path, as_attachment=True)
-
 
 @app.route('/search', methods=['GET'])
 def search():
@@ -127,85 +155,71 @@ def search():
 
     return jsonify(data)
 
-
 @app.route('/users', methods=['GET'])
 def users():
-    data = []
-
-    cursor.execute("SELECT * FROM users")
-
-    for row in cursor:
-        res = {
-            'id': row[0],
-            'username': row[1],
-            'password': row[2],
-            'firstName': row[3],
-            'lastName': row[4],
-            'token': row[5],
-        }
-        data.append(res)
-
+    data = get_data_in_format("SELECT * FROM users", '')
     return jsonify(data)
-
 
 @app.route('/user', methods=['GET', 'POST', 'PUT','DELETE'])
 def user():
-    data = []
 
     if request.method == "GET":
         username = request.args['username']
+        data = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": username})
 
-        cursor.execute("SELECT * FROM users WHERE username='%s'" %(username))
-        for row in cursor:
-            res = {
-                'id': row[0],
-                'username': row[1],
-                'password': row[2],
-                'firstName': row[3],
-                'lastName': row[4],
-                'token': row[5],
-            }
-            data.append(res)
-
-        return jsonify(data)
+        return data, 200
 
     if request.method == "POST":
         _data = request.json
-        query = """INSERT INTO `users`(`id`, `username`, `password`, `firstName`, `lastName`, `token`)
+        print (_data)
+        sql = """INSERT INTO `users`(`id`, `username`, `password`, `firstName`, `lastName`, `token`)
                 VALUES (NULL, %s, %s, %s, %s, %s)"""
         args = (
-            _data["username"],
-            _data["password"],
-            _data["firstName"],
-            _data["lastName"],
-            _data["token"],
+            _data["username"], _data["password"], _data["firstname"], _data["lastname"], '',
         )
-        cursor.execute(query, args)
+        cursor.execute(sql, args)
         cnx.commit()
+        data = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": _data["username"]})
 
-        return 'ok', 200
+        return data, 201
+    
+    if request.method == "PUT":
+        _data = request.json
+        _id = _data["id"]
+        for k,v in _data.items():
+            if k == "password":
+                cursor.execute("UPDATE users SET password= '%s' WHERE id=%s" %(v, _id))
+            elif k == "firstName":
+                cursor.execute("UPDATE users SET firstName= '%s' WHERE id=%s" %(v, _id))
+            elif k == "lastName":
+                cursor.execute("UPDATE users SET lastName= '%s' WHERE id=%s" %(v, _id))
+        cnx.commit()
+        data = get_data_in_format("SELECT * FROM users WHERE id=%(id)s", { "id": _id})
 
+        return data, 201
+
+    if request.method == "DELETE":
+        id = request.args['id']
+
+        cursor.execute("DELETE FROM users WHERE id=%s" %id)
+        data = get_data_in_format("SELECT * FROM users", '')
+
+        return jsonify(data), 200
 
 @app.route('/user/authenticate', methods=['GET', 'POST'])
 def user_auth():
 
     if request.method == 'POST':
         data = request.json
-        cursor.execute("SELECT username, password FROM users WHERE username='%s'" %(data["username"]))
-
-        for row in cursor:
-            res = {
-                'username': row[0],
-                'password': row[1],
-            }
+        res = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": data["username"]})
 
         if res:
             if data["password"] == res['password']:
-                return ('ok'), 200
+                return res, 200
             else:
-                return ('Username or password is incorrect'), 404
+                return ('Username or password is incorrect'), 400
         else:
-            return ('Username or password is incorrect'), 404
+            return ('Username or password is incorrect'), 400
 
 
 if __name__ == '__main__':
