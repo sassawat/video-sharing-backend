@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, send_file
 from passlib.hash import pbkdf2_sha256 as sha256
 import mysql.connector
 import datetime
+import resources
 
 app = Flask(__name__)
 
@@ -24,13 +25,14 @@ except mysql.connector.Error as err:
         print(err)
 else:
     print ("Connect database successed.")
-    cursor = cnx.cursor()
 
-def get_data_in_format(sql, args):
+def get_user(sql, args):
     res = ''
     data = []
     if args == '':
+        cursor = cnx.cursor()
         cursor.execute(sql)
+
         for row in cursor:
             res = {
                 'id': row[0],
@@ -39,11 +41,16 @@ def get_data_in_format(sql, args):
                 'firstName': row[3],
                 'lastName': row[4],
                 'token': row[5],
+                'privilege': row[6]
             }
             data.append(res)
+        cursor.close()
+
         return data
     else:
+        cursor = cnx.cursor()
         cursor.execute(sql, args)
+
         for row in cursor:
             res = {
                 'id': row[0],
@@ -52,7 +59,10 @@ def get_data_in_format(sql, args):
                 'firstName': row[3],
                 'lastName': row[4],
                 'token': row[5],
+                'privilege': row[6]
             }
+        cursor.close()
+
         return res
 
 @app.route('/api')
@@ -63,6 +73,7 @@ def hello_world():
 def videos():   
     data = []
 
+    cursor = cnx.cursor()
     cursor.execute("SELECT * FROM videos")
 
     for row in cursor:
@@ -77,7 +88,7 @@ def videos():
             'privilege': row[7],
         }
         data.append(res)
-    # cursor.close()
+    cursor.close()
 
     return jsonify(data)
 
@@ -88,6 +99,7 @@ def video():
     if request.method == "GET":
         id = request.args['id']
 
+        cursor = cnx.cursor()
         cursor.execute("SELECT * FROM videos WHERE id=%s" %(id))
 
         for row in cursor:
@@ -102,7 +114,8 @@ def video():
                 'privilege': row[7],
             }
             data.append(res)
-        
+        cursor.close()
+
         return jsonify(data)
             
     if request.method == "POST":
@@ -118,15 +131,19 @@ def video():
             "C:\\Users\\tong_\\Documents\\Github\\video-sharing-web-backend_1\\src\\asset\\video\\"+_data["name"]+".mp4"
         )
 
+        cursor = cnx.cursor()
         cursor.execute(sql, args)
         cnx.commit()
+        cursor.close()
 
         return 'ok', 200
 
     if request.method == "DELETE":
         id = request.args['id']
 
+        cursor = cnx.cursor()
         cursor.execute("DELETE FROM videos WHERE id=%s" %id)
+        cursor.close()
 
         return 'ok', 200
 
@@ -141,6 +158,7 @@ def search():
     name = request.args['name']
     data = []
 
+    cursor = cnx.cursor()
     cursor.execute('SELECT * FROM videos WHERE name REGEXP "^%s"' %(name))
 
     for row in cursor:
@@ -155,6 +173,7 @@ def search():
             'privilege': row[7],
         }
         data.append(res)
+    cursor.close()
 
     return jsonify(data)
 
@@ -174,10 +193,10 @@ def user():
 
     if request.method == "POST":
         _data = request.json
-        sql = """INSERT INTO `users`(`id`, `username`, `password`, `firstName`, `lastName`, `token`)
-                VALUES (NULL, %s, %s, %s, %s, %s)"""
+        sql = """INSERT INTO `users`(`id`, `username`, `password`, `firstName`, `lastName`, `token`, `privilege`)
+                VALUES (NULL, %s, %s, %s, %s, %s, %s)"""
         args = (
-            _data["username"], _data["password"], _data["firstname"], _data["lastname"], sha256.hash(_data["password"]),
+            _data["username"], _data["password"], _data["firstname"], _data["lastname"], sha256.hash(_data["password"]), 'user'
         )
 
         data = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": _data["username"]})
@@ -185,8 +204,11 @@ def user():
         if data != '':
             return {'message': 'User {} already exists'.format(data['username'])}
 
+        cursor = cnx.cursor()
         cursor.execute(sql, args)
         cnx.commit()
+        cursor.close()
+
         user = get_data_in_format("SELECT * FROM users WHERE username=%(username)s", {"username": _data["username"]})
 
         return {"username": user["username"], "token": user["token"]}, 201
@@ -194,22 +216,31 @@ def user():
     if request.method == "PUT":
         _data = request.json
         _id = _data["id"]
+
+        cursor = cnx.cursor()
         for k,v in _data.items():
             if k == "password":
-                cursor.execute("UPDATE users SET password= '%s' WHERE id=%s" %(v, _id))
+                cursor.execute("UPDATE users SET password= '%s', token='%s' WHERE id=%s" %(v, sha256.hash(v), _id))
             elif k == "firstName":
                 cursor.execute("UPDATE users SET firstName= '%s' WHERE id=%s" %(v, _id))
             elif k == "lastName":
                 cursor.execute("UPDATE users SET lastName= '%s' WHERE id=%s" %(v, _id))
+            elif k == "privilege":
+                cursor.execute("UPDATE users SET privilege= '%s' WHERE id=%s" %(v, _id))
+
         cnx.commit()
+        cursor.close()
+
         data = get_data_in_format("SELECT * FROM users WHERE id=%(id)s", { "id": _id})
 
-        return data, 201
+        return {"message": 'Change user data successed'}, 201
 
     if request.method == "DELETE":
         id = request.args['id']
 
+        cursor = cnx.cursor()
         cursor.execute("DELETE FROM users WHERE id=%s" %id)
+        cursor.close()
         data = get_data_in_format("SELECT * FROM users", '')
 
         return jsonify(data), 200
@@ -223,11 +254,11 @@ def user_auth():
 
         if user:
             if sha256.verify(data["password"], user['token']):
-                return {"message": 'Logged in as {}'.format(user["username"]), "token": user["token"]}, 200
+                return {"message": 'Logged in as {}'.format(user["username"]), "token": user["token"], "privilege": user["privilege"]}, 200
             else:
-                return {"message": 'Username or password is incorrect'}, 400
+                return {"message": 'Password is incorrect'}, 400
         else:
-            return {"message": 'Username or password is incorrect'}, 400
+            return {"message": 'Username is incorrect'}, 400
 
 
 if __name__ == '__main__':
