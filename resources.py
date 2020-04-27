@@ -152,14 +152,14 @@ class Video():
 
         return jsonify(data)
 
-    def addVideo(self, cnx, data):
+    def upload_video(self, cnx, data):
         sql = """INSERT INTO `videos`(`id`, `name`, `album`, `artist`, `duration`, `description`, `path`, `privilege`)
                 VALUES (NULL, %s, %s, %s, %s, %s, %s, 'general')"""           
         args = (
             data["name"],
             data["album"],
             data["artist"],
-            data["duration"],
+            '-',
             data["description"],
             "C:\\Users\\tong_\\Documents\\Github\\video-sharing-web-backend_1\\src\\asset\\video\\"+data["name"]+".mp4"
         )
@@ -169,13 +169,13 @@ class Video():
         cnx.commit()
         cursor.close()
 
-        return 'ok', 200
+        return {"message": 'Add video successed'}, 201
 
     def delete(self, cursor, id):
         cursor.execute("DELETE FROM videos WHERE id=%s" %id)
         cursor.close()
 
-        return 'ok', 200
+        return {"message": 'Delete video successed'},, 200
 
     def search(self, cursor, name):
         data = []
