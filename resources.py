@@ -1,5 +1,6 @@
 from flask import jsonify
 from passlib.hash import pbkdf2_sha256 as sha256
+import datetime
 
 def get_db_all_user(cursor):
     data = []
@@ -94,10 +95,12 @@ class User():
 
         return {"message": 'Change user data successed'}, 201
     
-    def delete(self, cursor, id):
+    def delete(self, cnx, id):
+        cursor = cnx.cursor()
         cursor.execute("DELETE FROM users WHERE id=%s" %id)
+        cnx.commit()
         
-        return get_db_all_user(), 200
+        return jsonify(get_db_all_user(cursor)), 200
 
     def authenticate(self, cursor, data):
         user = get_db_user(cursor, data["username"])
@@ -126,6 +129,8 @@ class Video():
                 'description': row[5],
                 'path': row[6],
                 'privilege': row[7],
+                'favorite_rate':row[8],
+                'view_rate':row[9]
             }
             data.append(res)
         cursor.close()
@@ -153,15 +158,16 @@ class Video():
         return jsonify(data)
 
     def upload_video(self, cnx, data):
-        sql = """INSERT INTO `videos`(`id`, `name`, `album`, `artist`, `duration`, `description`, `path`, `privilege`)
-                VALUES (NULL, %s, %s, %s, %s, %s, %s, 'general')"""           
+        sql = """INSERT INTO `videos`(`id`, `name`, `album`, `artist`, `duration`, `description`, `path`, `privilege`, `favorite_rate`, `view_rate`, `time_upload`)
+                VALUES (NULL, %s, %s, %s, %s, %s, %s, 'general', 0, 0, %s)"""           
         args = (
             data["name"],
             data["album"],
             data["artist"],
             '-',
             data["description"],
-            "C:\\Users\\tong_\\Documents\\Github\\video-sharing-web-backend_1\\src\\asset\\video\\"+data["name"]+".mp4"
+            "C:\\Users\\tong_\\Documents\\Github\\video-sharing-web-backend_1\\src\\asset\\video\\"+data["name"]+".mp4",
+            datetime.datetime.now()
         )
 
         cursor = cnx.cursor()
@@ -171,11 +177,13 @@ class Video():
 
         return {"message": 'Add video successed'}, 201
 
-    def delete(self, cursor, id):
+    def delete(self, cnx, id):
+        cursor = cnx.cursor()
         cursor.execute("DELETE FROM videos WHERE id=%s" %id)
+        cnx.commit()
         cursor.close()
 
-        return {"message": 'Delete video successed'},, 200
+        return {"message": 'Delete video successed'}, 200
 
     def search(self, cursor, name):
         data = []
@@ -196,5 +204,74 @@ class Video():
             data.append(res)
         # print (data)
         cursor.close()
+
+        return jsonify(data)
+
+    def top10_favorite(self, cursor):
+        data = []
+        cursor.execute("SELECT * FROM `videos` ORDER BY `videos`.`favorite_rate` DESC LIMIT 10")
+
+        for row in cursor:
+            res = {
+                'id': row[0],
+                'name': row[1],
+                'album': row[2],
+                'artist': row[3],
+                'duration': str(row[4]),
+                'description': row[5],
+                'path': row[6],
+                'privilege': row[7],
+                'favorite_rate':row[8],
+                'view_rate':row[9]
+            }
+            data.append(res)
+
+        return jsonify(data)
+
+    def top10_view(self, cursor):
+        data = []
+        cursor.execute("SELECT * FROM `videos` ORDER BY `videos`.`view_rate` DESC LIMIT 10")
+
+        for row in cursor:
+            res = {
+                'id': row[0],
+                'name': row[1],
+                'album': row[2],
+                'artist': row[3],
+                'duration': str(row[4]),
+                'description': row[5],
+                'path': row[6],
+                'privilege': row[7],
+                'favorite_rate':row[8],
+                'view_rate':row[9]
+            }
+            data.append(res)
+        cursor.close()
+
+        return jsonify(data)
+
+    def new_of_mounth(self, cursor):
+        data = []
+        
+        x = datetime.datetime.now()
+        sql = "SELECT * FROM `videos` WHERE `time_upload` BETWEEN %s AND %s ORDER BY `time_upload` DESC"
+        args = ('%s-%s-01'%(x.year, x.strftime("%m")), '%s-%s-31'%(x.year, x.strftime("%m")))
+        cursor.execute(sql, args)
+
+        for row in cursor:
+            res = {
+                'id': row[0],
+                'name': row[1],
+                'album': row[2],
+                'artist': row[3],
+                'duration': str(row[4]),
+                'description': row[5],
+                'path': row[6],
+                'privilege': row[7],
+                'favorite_rate':row[8],
+                'view_rate':row[9],
+                'upload_time':row[10]
+            }
+            data.append(res)
 
         return jsonify(data)

@@ -71,7 +71,7 @@ def user():
 
     if request.method == "DELETE":
         id = request.args['id']
-        return user.delete(cursor, id)
+        return user.delete(cnx, id)
 
 @app.route('/user/authenticate', methods=['GET', 'POST'])
 def user_auth():
@@ -134,7 +134,7 @@ def video():
 
     if request.method == "DELETE":
         id = request.args['id']
-        return video.delete(cursor, id)
+        return video.delete(cnx, id)
 
 @app.route('/search', methods=['GET'])
 def search():
@@ -145,6 +145,33 @@ def search():
     cursor = cnx.cursor()
     name = request.args['name']
     return video.search(cursor, name)
+
+@app.route('/top10_favorite', methods=['GET'])
+def top10_favorite():
+    if not cnx.is_connected():
+        connect_database()
+
+    videos = Video()
+    cursor = cnx.cursor()
+    return videos.top10_favorite(cursor)
+
+@app.route('/top10_view', methods=['GET'])
+def top10_view():
+    if not cnx.is_connected():
+        connect_database()
+
+    videos = Video()
+    cursor = cnx.cursor()
+    return videos.top10_view(cursor)
+
+@app.route('/new_of_mounth', methods=['GET'])
+def new_of_mounth():
+    if not cnx.is_connected():
+        connect_database()
+
+    videos = Video()
+    cursor = cnx.cursor()
+    return videos.new_of_mounth(cursor)
 
 
 if __name__ == '__main__':
