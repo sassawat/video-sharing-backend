@@ -1,20 +1,24 @@
 from flask import jsonify
 from passlib.hash import pbkdf2_sha256 as sha256
-import datetime
+import datetime, random, string
+from config import UPLOAD_FOLDER
 
 def get_db_all_user(cursor):
     data = []
     # cursor = cnx.cursor()
-    cursor.execute("SELECT * FROM users")
+    cursor.execute("SELECT * FROM users ORDER BY id DESC")
     for row in cursor:
         res = {
             'id': row[0],
             'username': row[1],
             'password': row[2],
-            'firstName': row[3],
-            'lastName': row[4],
-            'token': row[5],
-            'privilege': row[6]
+            'Fname': row[3],
+            'Lname': row[4],
+            'phone': row[5],
+            'token': row[6],
+            'privilege': row[7],
+            'num_of_sing': row[8],
+            'time_to_service': row[9]
         }
         data.append(res)
 
@@ -25,16 +29,20 @@ def get_db_all_user(cursor):
 def get_db_user(cursor, username):
     # cursor = cnx.cursor()
     cursor.execute("SELECT * FROM users WHERE username=%(username)s", {"username": username})
+    res = ''
 
     for row in cursor:
         res = {
             'id': row[0],
             'username': row[1],
             'password': row[2],
-            'firstName': row[3],
-            'lastName': row[4],
-            'token': row[5],
-            'privilege': row[6]
+            'Fname': row[3],
+            'Lname': row[4],
+            'phone': row[5],
+            'token': row[6],
+            'privilege': row[7],
+            'num_of_sing': row[8],
+            'time_to_service': row[9]
         }
 
     cursor.close()
@@ -52,6 +60,10 @@ def compareUserData(newData, currentData):
 
     return dic
 
+def get_random_alphaNumeric_string(stringLength=8):
+    lettersAndDigits = string.ascii_letters + string.digits
+    return ''.join((random.choice(lettersAndDigits) for i in range(stringLength)))
+
 class User():
 
     def getAll(self, cursor):
@@ -60,19 +72,28 @@ class User():
     def getUser(self, cursor, username):
         return get_db_user(cursor, username), 200
 
-    def register(self, cnx, cursor, data):
-        user_existing = get_user(cursor, data["username"])
+    def register(self, cnx, data):
+        if data["username"] == '':
+            username = get_random_alphaNumeric_string()
+            password = get_random_alphaNumeric_string()
+            print ("{} and {}".format(username, password))
+        else:
+            username = data["username"]
+            password = data["password"]
+
+        user_existing = get_db_user(cnx.cursor(), username)
         if user_existing:
-            return {'message': 'User {} already exists'.format(data['username'])}
+            return {'message': 'User {} already exists'.format(username)}
 
-        sql = """INSERT INTO `users`(`id`, `username`, `password`, `firstName`, `lastName`, `token`, `privilege`)
-                VALUES (NULL, %s, %s, %s, %s, %s, %s)"""
+        sql = """INSERT INTO `users`(`id`, `username`, `password`, `Fname`, `Lname`, `phone`, `token`, `privilege`, `num_of_sing`, `time_to_service`)
+                VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         args = (
-            data["username"], data["password"], data["firstname"], data["lastname"], sha256.hash(data["password"]), 'user'
+            username, password, data["Fname"], data["Lname"], data["phone"], sha256.hash(password), 'user', 5, 1
         )
-
+        cursor = cnx.cursor()
         cursor.execute(sql, args)
-        user = get_db_user(cursor, data["username"])
+        cnx.commit()
+        user = get_db_user(cursor, username)
 
         return {"username": user["username"], "token": user["token"]}, 201
 
@@ -83,17 +104,24 @@ class User():
         for k,v in data.items():
             if k == "password":
                 cursor.execute("UPDATE users SET password= '%s', token='%s' WHERE username='%s'" %(v, sha256.hash(v), username))
-            elif k == "firstName":
-                cursor.execute("UPDATE users SET firstName= '%s' WHERE username='%s'" %(v, username))
-            elif k == "lastName":
-                cursor.execute("UPDATE users SET lastName= '%s' WHERE username='%s'" %(v, username))
+            elif k == "Fname":
+                cursor.execute("UPDATE users SET Fname= '%s' WHERE username='%s'" %(v, username))
+            elif k == "Lname":
+                cursor.execute("UPDATE users SET Lname= '%s' WHERE username='%s'" %(v, username))
+            elif k == "phone":
+                cursor.execute("UPDATE users SET phone= '%s' WHERE username='%s'" %(v, username))
             elif k == "privilege":
                 cursor.execute("UPDATE users SET privilege= '%s' WHERE username='%s'" %(v, username))
+            elif k == "num_of_sing":
+                cursor.execute("UPDATE users SET num_of_sing= '%s' WHERE username='%s'" %(v, username))
+            elif k == "time_to_service":
+                cursor.execute("UPDATE users SET time_to_service= '%s' WHERE username='%s'" %(v, username))
 
         cnx.commit()
-        print (get_db_user(cursor, username))
+        # print (get_db_user(cursor, username))
 
-        return {"message": 'Change user data successed'}, 201
+        # return {"message": 'Change user data successed'}, 201
+        return jsonify(get_db_all_user(cursor)), 201
     
     def delete(self, cnx, id):
         cursor = cnx.cursor()
@@ -107,16 +135,30 @@ class User():
 
         if user:
             if sha256.verify(data["password"], user['token']):
-                return {"id": user["id"], "token": user["token"], "privilege": user["privilege"]}, 200
+                res = {
+                    "id": user["id"],
+                    "token": user["token"],
+                    "privilege": user["privilege"],
+                    "num_of_sing": user["num_of_sing"],
+                    "time_to_service": user["time_to_service"]
+                }
+                return res, 200
             else:
                 return {"message": 'Password is incorrect'}, 400
         else:
             return {"message": 'Username is incorrect'}, 400
 
+    def setSessionExpire(self, cnx, data):
+        cursor = cnx.cursor()
+        _id = data["id"]
+        cursor.execute("UPDATE users SET num_of_sing= '%s', time_to_service= '%s' WHERE id='%s'" %(0, 0, _id))
+        cnx.commit()
+
+        return {"message": 'ok'}, 200
+
 class Video():
     def getAll(self, cursor):
         data = []
-
         cursor.execute("SELECT * FROM videos")
 
         for row in cursor:
@@ -127,19 +169,21 @@ class Video():
                 'artist': row[3],
                 'duration': str(row[4]),
                 'description': row[5],
-                'path': row[6],
-                'privilege': row[7],
-                'favorite_rate':row[8],
-                'view_rate':row[9]
+                'privilege': row[6],
+                'like_rate':row[7],
+                'view_rate':row[8],
+                'download_rate':row[9]
             }
             data.append(res)
         cursor.close()
 
         return jsonify(data)
 
-    def getVideo(self, cursor, id):
+    def getVideo(self, cnx, id):
         data = []
-        cursor.execute("SELECT * FROM videos WHERE id=%s" %(id))
+        cursor = cnx.cursor()
+
+        cursor.execute("SELECT * FROM videos WHERE id={}".format(id))
 
         for row in cursor:
             res = {
@@ -149,8 +193,7 @@ class Video():
                 'artist': row[3],
                 'duration': str(row[4]),
                 'description': row[5],
-                'path': row[6],
-                'privilege': row[7],
+                'privilege': row[6],
             }
             data.append(res)
         cursor.close()
@@ -158,15 +201,14 @@ class Video():
         return jsonify(data)
 
     def upload_video(self, cnx, data):
-        sql = """INSERT INTO `videos`(`id`, `name`, `album`, `artist`, `duration`, `description`, `path`, `privilege`, `favorite_rate`, `view_rate`, `time_upload`)
-                VALUES (NULL, %s, %s, %s, %s, %s, %s, 'general', 0, 0, %s)"""           
+        sql = """INSERT INTO `videos`(`id`, `name`, `album`, `artist`, `duration`, `description`, `privilege`, `like_rate`, `view_rate`, `download_rate`, `time_upload`)
+                VALUES (NULL, %s, %s, %s, %s, %s, 'general', 0, 0, 0, %s)"""           
         args = (
             data["name"],
             data["album"],
             data["artist"],
-            '-',
+            data["duration"],
             data["description"],
-            "C:\\Users\\tong_\\Documents\\Github\\video-sharing-web-backend_1\\src\\asset\\video\\"+data["name"]+".mp4",
             datetime.datetime.now()
         )
 
@@ -187,8 +229,7 @@ class Video():
 
     def search(self, cursor, name):
         data = []
-
-        cursor.execute('SELECT * FROM videos WHERE name REGEXP "^%s"' %(name))
+        cursor.execute('SELECT * FROM videos where CONCAT(name, artist) REGEXP "^%s"' %(name))
 
         for row in cursor:
             res = {
@@ -198,18 +239,17 @@ class Video():
                 'artist': row[3],
                 'duration': str(row[4]),
                 'description': row[5],
-                'path': row[6],
-                'privilege': row[7],
+                'privilege': row[6],
             }
             data.append(res)
-        # print (data)
+        print (data)
         cursor.close()
 
         return jsonify(data)
 
-    def top10_favorite(self, cursor):
+    def top10_like(self, cursor):
         data = []
-        cursor.execute("SELECT * FROM `videos` ORDER BY `videos`.`favorite_rate` DESC LIMIT 10")
+        cursor.execute("SELECT * FROM `videos` ORDER BY `videos`.`like_rate` DESC LIMIT 10")
 
         for row in cursor:
             res = {
@@ -219,10 +259,9 @@ class Video():
                 'artist': row[3],
                 'duration': str(row[4]),
                 'description': row[5],
-                'path': row[6],
-                'privilege': row[7],
-                'favorite_rate':row[8],
-                'view_rate':row[9]
+                'privilege': row[6],
+                'like_rate':row[7],
+                'view_rate':row[8]
             }
             data.append(res)
 
@@ -240,10 +279,9 @@ class Video():
                 'artist': row[3],
                 'duration': str(row[4]),
                 'description': row[5],
-                'path': row[6],
-                'privilege': row[7],
-                'favorite_rate':row[8],
-                'view_rate':row[9]
+                'privilege': row[6],
+                'like_rate':row[7],
+                'view_rate':row[8]
             }
             data.append(res)
         cursor.close()
@@ -266,12 +304,31 @@ class Video():
                 'artist': row[3],
                 'duration': str(row[4]),
                 'description': row[5],
-                'path': row[6],
-                'privilege': row[7],
-                'favorite_rate':row[8],
-                'view_rate':row[9],
-                'upload_time':row[10]
+                'privilege': row[6],
+                'like_rate':row[7],
+                'view_rate':row[8],
+                'upload_time':row[9]
             }
             data.append(res)
 
         return jsonify(data)
+
+    def addView(self, cnx, id):
+        cursor = cnx.cursor()
+        cursor.execute("SELECT `view_rate` FROM `videos` WHERE id = %s" %(id))
+        add_view = cursor.fetchone()[0]+1
+        cursor.execute("UPDATE `videos` SET `view_rate`= %s WHERE `id` = %s" %(add_view, id))
+        cnx.commit()
+        cursor.close()
+
+        return {"message": 'ok'}, 201
+
+    def addLike(self, cnx, id):
+        cursor = cnx.cursor()
+        cursor.execute("SELECT `like_rate` FROM `videos` WHERE id = %s" %(id))
+        add_like = cursor.fetchone()[0]+1
+        cursor.execute("UPDATE `videos` SET `like_rate`= %s WHERE `id` = %s" %(add_like, id))
+        cnx.commit()
+        cursor.close()
+
+        return {"message": 'ok'}, 201
