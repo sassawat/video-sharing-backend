@@ -84,12 +84,13 @@ class User():
         user_existing = get_db_user(cnx.cursor(), username)
         if user_existing:
             return {'message': 'User {} already exists'.format(username)}
-
+        # Set params
         sql = """INSERT INTO `users`(`id`, `username`, `password`, `Fname`, `Lname`, `phone`, `token`, `privilege`, `num_of_sing`, `time_to_service`)
                 VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         args = (
-            username, password, data["Fname"], data["Lname"], data["phone"], sha256.hash(password), 'user', 5, 1
+            username, password, data["Fname"], data["Lname"], data["phone"], sha256.hash(password), 'user', 5, 60
         )
+        # Execute
         cursor = cnx.cursor()
         cursor.execute(sql, args)
         cnx.commit()
@@ -118,9 +119,7 @@ class User():
                 cursor.execute("UPDATE users SET time_to_service= '%s' WHERE username='%s'" %(v, username))
 
         cnx.commit()
-        # print (get_db_user(cursor, username))
 
-        # return {"message": 'Change user data successed'}, 201
         return jsonify(get_db_all_user(cursor)), 201
     
     def delete(self, cnx, id):
@@ -149,8 +148,8 @@ class User():
             return {"message": 'Username is incorrect'}, 400
 
     def setSessionExpire(self, cnx, data):
-        cursor = cnx.cursor()
         _id = data["id"]
+        cursor = cnx.cursor()
         cursor.execute("UPDATE users SET num_of_sing= '%s', time_to_service= '%s' WHERE id='%s'" %(0, 0, _id))
         cnx.commit()
 
@@ -175,6 +174,7 @@ class Video():
                 'download_rate':row[9]
             }
             data.append(res)
+
         cursor.close()
 
         return jsonify(data)
@@ -182,7 +182,6 @@ class Video():
     def getVideo(self, cnx, id):
         data = []
         cursor = cnx.cursor()
-
         cursor.execute("SELECT * FROM videos WHERE id={}".format(id))
 
         for row in cursor:
@@ -196,6 +195,7 @@ class Video():
                 'privilege': row[6],
             }
             data.append(res)
+
         cursor.close()
 
         return jsonify(data)
@@ -211,7 +211,7 @@ class Video():
             data["description"],
             datetime.datetime.now()
         )
-
+        # Execute
         cursor = cnx.cursor()
         cursor.execute(sql, args)
         cnx.commit()
@@ -242,7 +242,7 @@ class Video():
                 'privilege': row[6],
             }
             data.append(res)
-        print (data)
+
         cursor.close()
 
         return jsonify(data)
@@ -284,6 +284,7 @@ class Video():
                 'view_rate':row[8]
             }
             data.append(res)
+
         cursor.close()
 
         return jsonify(data)
@@ -328,6 +329,16 @@ class Video():
         cursor.execute("SELECT `like_rate` FROM `videos` WHERE id = %s" %(id))
         add_like = cursor.fetchone()[0]+1
         cursor.execute("UPDATE `videos` SET `like_rate`= %s WHERE `id` = %s" %(add_like, id))
+        cnx.commit()
+        cursor.close()
+
+        return {"message": 'ok'}, 201
+
+    def addDownload(self, cnx, id):
+        cursor = cnx.cursor()
+        cursor.execute("SELECT `download_rate` FROM `videos` WHERE id = %s" %(id))
+        add_download = cursor.fetchone()[0]+1
+        cursor.execute("UPDATE `videos` SET `download_rate`= %s WHERE `id` = %s" %(add_download, id))
         cnx.commit()
         cursor.close()
 

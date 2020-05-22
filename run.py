@@ -5,16 +5,14 @@ from resources import User, Video
 from config import CONFIG_DB, UPLOAD_FOLDER
 from flask_cors import CORS, cross_origin
 
-app = Flask(__name__)
-CORS(app)
-# cors = CORS(app, resources={r"/": {"origins": "*"}})
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.secret_key = "super secret key"
+application = Flask(__name__)
+CORS(application)
+application.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+application.secret_key = "super secret key"
 ALLOWED_EXTENSIONS = {'mp4'}
 
 config = CONFIG_DB
 cnx = ''
-# cursor = ''
 
 def connect_database():
     global cnx
@@ -56,8 +54,7 @@ def duration(_file):
 	else:
 		return ('{0:.0f}:{1:.0f}'.format(minute, sec))
 
-@app.route('/users', methods=['GET'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/users', methods=['GET'])
 def users():
     if not cnx.is_connected():
         connect_database()
@@ -66,8 +63,7 @@ def users():
     cursor = cnx.cursor()
     return users.getAll(cursor)
 
-@app.route('/user', methods=['GET', 'POST', 'PUT','DELETE'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/user', methods=['GET', 'POST', 'PUT','DELETE'])
 def user():
     if not cnx.is_connected():
         connect_database()
@@ -92,8 +88,7 @@ def user():
         id = request.args['id']
         return user.delete(cnx, id)
 
-@app.route('/user/authenticate', methods=['GET', 'POST', 'PUT'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/user/authenticate', methods=['GET', 'POST', 'PUT'])
 def user_auth():
     if not cnx.is_connected():
         connect_database()
@@ -109,30 +104,27 @@ def user_auth():
         data = request.json
         return user.setSessionExpire(cnx, data)
 
-@app.route('/watch', methods=['GET'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/watch', methods=['GET'])
 def watch():
     if not cnx.is_connected():
         connect_database()
 
     name = request.args['name']
-    full_path = "{}\\{}.mp4".format(app.config['UPLOAD_FOLDER'], name)
+    full_path = "{}\\{}.mp4".format(application.config['UPLOAD_FOLDER'], name)
 
     return send_file(full_path, as_attachment=True)
 
-@app.route('/karaoke', methods=['GET'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/karaoke', methods=['GET'])
 def karaoke():
     if not cnx.is_connected():
         connect_database()
 
     name = request.args['name']
-    full_path = "{}\\{}_k.mp4".format(app.config['UPLOAD_FOLDER'], name)
+    full_path = "{}\\{}_k.mp4".format(application.config['UPLOAD_FOLDER'], name)
 
     return send_file(full_path, as_attachment=True)
 
-@app.route('/videos')
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/videos')
 def videos():
     if not cnx.is_connected():
         connect_database()
@@ -141,8 +133,7 @@ def videos():
     cursor = cnx.cursor()
     return videos.getAll(cursor)
 
-@app.route('/video', methods=['GET', 'POST', 'PUT','DELETE'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/video', methods=['GET', 'POST', 'PUT','DELETE'])
 def video():
     if not cnx.is_connected():
         connect_database()
@@ -169,28 +160,25 @@ def video():
         filename_k = file_k.filename.replace('"', '')
         if file and allowed_file(filename):
             # Save vdo file & add duration
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
-            data["duration"] = duration("{}\\{}".format(app.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
-
+            file.save(os.path.join(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
+            data["duration"] = duration("{}\\{}".format(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
             # Save karaoke file
-            file_k.save(os.path.join(app.config['UPLOAD_FOLDER'], "{}_k.mp4".format(data['name'])))
+            file_k.save(os.path.join(application.config['UPLOAD_FOLDER'], "{}_k.mp4".format(data['name'])))
 
-            # print (data)
             print ("Upload {} successed".format(filename))
 
-        # time.sleep(10000)               
         return video.upload_video(cnx, data)
 
     if request.method == "DELETE":
         id = request.args['id']
         filename = request.args['name']
-        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], "{}.mp4".format(filename)))
-        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], "{}_k.mp4".format(filename)))
-        print ("Delete file => " + filename)
+        os.remove(os.path.join(application.config['UPLOAD_FOLDER'], "{}.mp4".format(filename)))
+        os.remove(os.path.join(application.config['UPLOAD_FOLDER'], "{}_k.mp4".format(filename)))
+        print (f"Delete file => {filename} successed!" )
+
         return video.delete(cnx, id)
 
-@app.route('/search', methods=['GET'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/search', methods=['GET'])
 def search():
     if not cnx.is_connected():
         connect_database()
@@ -198,40 +186,40 @@ def search():
     video = Video()
     cursor = cnx.cursor()
     name = request.args['name']
+
     return video.search(cursor, name)
 
-@app.route('/video/top10_like', methods=['GET'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/video/top10_like', methods=['GET'])
 def top10_like():
     if not cnx.is_connected():
         connect_database()
 
     videos = Video()
     cursor = cnx.cursor()
+
     return videos.top10_like(cursor)
 
-@app.route('/video/top10_view', methods=['GET'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/video/top10_view', methods=['GET'])
 def top10_view():
     if not cnx.is_connected():
         connect_database()
 
     videos = Video()
     cursor = cnx.cursor()
+
     return videos.top10_view(cursor)
 
-@app.route('/video/new_of_mounth', methods=['GET'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/video/new_of_mounth', methods=['GET'])
 def new_of_mounth():
     if not cnx.is_connected():
         connect_database()
 
     videos = Video()
     cursor = cnx.cursor()
+
     return videos.new_of_mounth(cursor)
 
-@app.route('/video/addView', methods=['PUT'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/video/addView', methods=['PUT'])
 def addView():
     if not cnx.is_connected():
         connect_database()
@@ -240,10 +228,10 @@ def addView():
 
     if request.method == 'PUT':
         id = request.args['id']
+
         return video.addView(cnx, id)
 
-@app.route('/video/addLike', methods=['PUT'])
-# @cross_origin(origin='*',headers=['Content-Type','Authorization'])
+@application.route('/video/addLike', methods=['PUT'])
 def addLike():
     if not cnx.is_connected():
         connect_database()
@@ -252,8 +240,22 @@ def addLike():
     
     if request.method == 'PUT':
         id = request.args['id']
+
         return video.addLike(cnx, id)
+
+@application.route('/video/addDownload', methods=['PUT'])
+def addDownload():
+    if not cnx.is_connected():
+        connect_database()
+
+    video = Video()
+    
+    if request.method == 'PUT':
+        id = request.args['id']
+
+        return video.addDownload(cnx, id)
+
 
 
 if __name__ == '__main__':
-	app.run(debug=True)
+	application.run()

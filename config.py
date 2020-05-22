@@ -8,5 +8,5 @@ CONFIG_DB = {
 }
 
 # Path video for upload store in server
-UPLOAD_FOLDER = 'C:\\Users\\tong_\\Documents\\Github\\video-sharing-web-backend_1\\src\\asset\\video'
+UPLOAD_FOLDER = 'src/asset/video/'
 
