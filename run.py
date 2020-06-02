@@ -156,7 +156,7 @@ def video():
 
     if request.method == "POST":
         data = json.loads(request.form.get('data'))
-        
+
         if 'file' not in request.files:
             print ('No file part')
         file = request.files['file']
@@ -256,4 +256,4 @@ def addLike():
 
 
 if __name__ == '__main__':
-	app.run(debug=True)
+	app.run()
