@@ -2,8 +2,8 @@
 CONFIG_DB = {
     "user": "root",
     "password": "123456",
-    "host": "10.0.253.247",
-    "port": 9966,
+    "host": "10.0.253.241",
+    "port": 9988, 
     "database": "video_sharing"
 }
 

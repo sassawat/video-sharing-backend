@@ -1,5 +1,6 @@
 from flask import Flask, request, send_file, session
 import mysql.connector
+from mysql.connector import errorcode
 import os, datetime, json, time, vlc
 from resources import User, Video
 from config import CONFIG_DB, UPLOAD_FOLDER
@@ -147,7 +148,7 @@ def video():
 
     if request.method == "POST":
         data = json.loads(request.form.get('data'))
-        
+
         if 'file' not in request.files:
             print ('No file part')
         file = request.files['file']
@@ -258,4 +259,4 @@ def addDownload():
 
 
 if __name__ == '__main__':
-	application.run()
+	application.run(host='0.0.0.0')
