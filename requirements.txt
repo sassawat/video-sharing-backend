@@ -1,0 +1,14 @@
+click==7.1.2
+Flask==1.1.2
+Flask-Cors==3.0.8
+gunicorn==20.0.4
+itsdangerous==1.1.0
+Jinja2==2.11.2
+MarkupSafe==1.1.1
+mysql-connector==2.2.9
+mysql-connector-python==8.0.20
+passlib==1.7.2
+protobuf==3.12.2
+python-vlc==3.0.10114
+six==1.15.0
+Werkzeug==1.0.1
