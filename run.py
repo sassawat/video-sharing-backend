@@ -110,7 +110,7 @@ def watch():
         connect_database()
 
     name = request.args['name']
-    full_path = "{}\\{}.mp4".format(application.config['UPLOAD_FOLDER'], name)
+    full_path = "{}{}.mp4".format(application.config['UPLOAD_FOLDER'], name)
 
     return send_file(full_path, as_attachment=True)
 
@@ -120,7 +120,7 @@ def karaoke():
         connect_database()
 
     name = request.args['name']
-    full_path = "{}\\{}_k.mp4".format(application.config['UPLOAD_FOLDER'], name)
+    full_path = "{}{}_k.mp4".format(application.config['UPLOAD_FOLDER'], name)
 
     return send_file(full_path, as_attachment=True)
 
@@ -161,7 +161,8 @@ def video():
         if file and allowed_file(filename):
             # Save vdo file & add duration
             file.save(os.path.join(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
-            data["duration"] = duration("{}\\{}".format(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
+            # data["duration"] = duration("{}\\{}".format(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
+            data["duration"] = '-'
             # Save karaoke file
             file_k.save(os.path.join(application.config['UPLOAD_FOLDER'], "{}_k.mp4".format(data['name'])))
 
@@ -256,6 +257,5 @@ def addDownload():
         return video.addDownload(cnx, id)
 
 
-
 if __name__ == '__main__':
-	application.run()
+	application.run(debug=True)

@@ -1,10 +1,16 @@
 # Config to connect database
 CONFIG_DB = {
-    "user": "kodadmin", 
-    "password": "SDD.kod@!t2020", 
-    "host": "10.214.33.232", 
+    "user": "root", 
+    "password": "123456", 
+    "host": "kod_kod-db_1", 
     "port": 3306, 
     "database": "video_sharing"
+
+    # "user": "kodadmin", 
+    # "password": "SDD.kod@!t2020", 
+    # "host": "10.214.33.232", 
+    # "port": 3306, 
+    # "database": "video_sharing"
 }
 
 # Path video for upload store in server
