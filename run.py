@@ -5,6 +5,7 @@ import os, datetime, json, time, moviepy.editor
 from resources import User, Video
 from config import CONFIG_DB, UPLOAD_FOLDER
 from flask_cors import CORS, cross_origin
+import requests
 
 application = Flask(__name__)
 CORS(application)
@@ -249,6 +250,24 @@ def addDownload():
 
         return video.addDownload(cnx, id)
 
+@application.route('/checkOTP', methods=['POST'])
+def checkOTP():   
+    if request.method == "POST":
+        data = request.json
+        print (data)
+        url = "http://203.114.102.213/r18sendu.php"
+
+        payload = {
+            'usn': '021507940',
+            'psw': '9312tpwy',
+            'org': '021507940',
+            'destination': data["destination"],
+            'msg': 'OTP = {} [รหัสอ้างอิงในการลงทะเบียนระบบ Karaoke On Demand]'.format(data["otp"])
+        }
+
+        response = requests.request("POST", url, data = payload)
+        return {"message": response.text}, 200
+
 
 if __name__ == '__main__':
-	application.run(debug=true, host='0.0.0.0')
+	application.run(debug=True, host='0.0.0.0')

@@ -13,3 +13,4 @@ protobuf==3.12.2
 python-vlc==3.0.10114
 six==1.15.0
 Werkzeug==1.0.1
+requests==2.24.0
