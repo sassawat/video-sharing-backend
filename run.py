@@ -1,7 +1,7 @@
 from flask import Flask, request, send_file, session
 import mysql.connector
 from mysql.connector import errorcode
-import os, datetime, json, time, vlc
+import os, datetime, json, time, moviepy.editor
 from resources import User, Video
 from config import CONFIG_DB, UPLOAD_FOLDER
 from flask_cors import CORS, cross_origin
@@ -38,18 +38,11 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ต้องติดตั้งแอพ VLC ด้วย ถึงจะ import vlc
+# Get duration from vdo
 def duration(_file):
-	vlc_instance = vlc.Instance()
-	player = vlc_instance.media_player_new()
-	media = vlc_instance.media_new(_file)
-	player.set_media(media)
-	player.play()
-	time.sleep(1)
-	duration = player.get_length() / 1000
-	player.stop()
-	minute = duration // 60
-	sec = duration % 60
+	media = moviepy.editor.VideoFileClip(_file)
+	minute = media.duration // 60
+	sec = media.duration % 60
 	if minute < 10:
 		return ('0{0:.0f}:{1:.0f}'.format(minute, sec))
 	else:
@@ -162,8 +155,7 @@ def video():
         if file and allowed_file(filename):
             # Save vdo file & add duration
             file.save(os.path.join(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
-            # data["duration"] = duration("{}\\{}".format(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
-            data["duration"] = '-'
+            data["duration"] = duration("{}{}".format(application.config['UPLOAD_FOLDER'], "{}.mp4".format(data['name'])))
             # Save karaoke file
             file_k.save(os.path.join(application.config['UPLOAD_FOLDER'], "{}_k.mp4".format(data['name'])))
 

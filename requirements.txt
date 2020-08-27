@@ -5,6 +5,7 @@ gunicorn==20.0.4
 itsdangerous==1.1.0
 Jinja2==2.11.2
 MarkupSafe==1.1.1
+moviepy==1.0.3
 mysql-connector==2.2.9
 mysql-connector-python==8.0.20
 passlib==1.7.2
