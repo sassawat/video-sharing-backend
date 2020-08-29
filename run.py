@@ -1,7 +1,7 @@
-from flask import Flask, request, send_file, session
+from flask import Flask, request, send_file, session, redirect
 from mysql.connector import errorcode
 from resources import User, Video
-from config import CONFIG_DB, UPLOAD_FOLDER
+from config import CONFIG_DB, UPLOAD_FOLDER, BACKEND_ADDR, WEB_ADDR
 from flask_cors import CORS, cross_origin
 import os, datetime, json, time, moviepy.editor
 import mysql.connector, requests, getmac
@@ -110,6 +110,19 @@ def auth_gmail():
         data = request.json
         return user.auth_gmail(cnx, cursor, data)
 
+@application.route('/user/auth/line', methods=['GET'])
+def auth_line():
+    if not cnx.is_connected():
+        connect_database()
+
+    user = User()
+    cursor = cnx.cursor()
+    
+    if request.method == "GET":
+        id = request.args['id']
+        data = {'id': id}
+        return user.auth_social(cnx, cursor, data)
+
 @application.route('/user/auth/mac', methods=['GET'])
 def auth_mac():
     if not cnx.is_connected():
@@ -129,6 +142,12 @@ def auth_mac():
     
 @application.route('/user/auth/line/callback', methods=['POST', 'GET'])
 def auth_line_callback():
+    if not cnx.is_connected():
+        connect_database()
+
+    user = User()
+    cursor = cnx.cursor()
+
     if request.method == 'GET':
         code = request.args['code']
         state = request.args['state']
@@ -141,7 +160,7 @@ def auth_line_callback():
             'client_id': '1654879183',
             'client_secret': 'ef7a32d804fe144f54d4cad9ceb3825b',
             'code': code,
-            'redirect_uri': 'https://4a71d9bef197.ngrok.io/user/auth/line/callback'
+            'redirect_uri': '{}/user/auth/line/callback'.format(BACKEND_ADDR)
         }
 
         get_token_headers = {'Content-Type': 'application/x-www-form-urlencoded'}
@@ -152,7 +171,16 @@ def auth_line_callback():
         get_profile_response = requests.request("GET", get_profile_url, headers=get_profile_headers)
         profile = json.loads(get_profile_response.content)
         
-        return {"token": json.loads(get_token_response.content), "profile": profile}, 200
+        data = {
+            "id": profile["userId"],
+            "password": 'P@ssw0rd',
+            "firstName": '',
+            "lastName": '',
+            "authToken": access_token
+        }
+        user.auth_social(cnx, cursor, data)
+        # return {"token": json.loads(get_token_response.content), "profile": profile}, 200
+        return redirect('{}/#/login?id={}'.format(WEB_ADDR, profile["userId"]))
 
 @application.route('/watch', methods=['GET'])
 def watch():

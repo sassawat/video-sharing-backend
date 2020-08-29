@@ -147,7 +147,7 @@ class User():
         else:
             return {"message": 'Username is incorrect'}, 400
 
-    def auth_gmail(self, cnx, cursor, data):
+    def auth_social(self, cnx, cursor, data):
         user = get_db_user(cursor, "sc_{}".format(data["id"]))
         if user:
             res = {
@@ -160,18 +160,25 @@ class User():
             }
             return res, 200
         else:
-            print ('4')
             sql = """INSERT INTO `users`(`id`, `username`, `password`, `Fname`, `Lname`, `phone`, `token`, `privilege`, `num_of_sing`, `time_to_service`)
                 VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             args = (
-                "sc_{}".format(data["id"]), data["email"], data["firstName"], data["lastName"], '-', data['authToken'], 'user', 5, 60
+                "sc_{}".format(data["id"]), 
+                data["password"], 
+                data["firstName"], 
+                data["lastName"], 
+                '-', 
+                data['authToken'], 
+                'user', 
+                5, 
+                60
             )
             # Execute
             cursor = cnx.cursor()
             cursor.execute(sql, args)
             cnx.commit()
 
-            user = get_db_user(cursor, "fb_{}".format(data["id"]))
+            user = get_db_user(cursor, "sc_{}".format(data["id"]))
 
             res = {
                     "id": user["id"],
