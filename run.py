@@ -108,7 +108,7 @@ def auth_gmail():
 
     if request.method == 'POST':
         data = request.json
-        return user.auth_gmail(cnx, cursor, data)
+        return user.auth_social(cnx, cursor, data)
 
 @application.route('/user/auth/line', methods=['GET'])
 def auth_line():
