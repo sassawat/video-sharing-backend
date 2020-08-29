@@ -147,10 +147,69 @@ class User():
         else:
             return {"message": 'Username is incorrect'}, 400
 
+    def auth_gmail(self, cnx, cursor, data):
+        user = get_db_user(cursor, "sc_{}".format(data["id"]))
+        if user:
+            res = {
+                "id": user["id"],
+                "username": user["username"],
+                "token": user["token"],
+                "privilege": user["privilege"],
+                "num_of_sing": user["num_of_sing"],
+                "time_to_service": user["time_to_service"]
+            }
+            return res, 200
+        else:
+            print ('4')
+            sql = """INSERT INTO `users`(`id`, `username`, `password`, `Fname`, `Lname`, `phone`, `token`, `privilege`, `num_of_sing`, `time_to_service`)
+                VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            args = (
+                "sc_{}".format(data["id"]), data["email"], data["firstName"], data["lastName"], '-', data['authToken'], 'user', 5, 60
+            )
+            # Execute
+            cursor = cnx.cursor()
+            cursor.execute(sql, args)
+            cnx.commit()
+
+            user = get_db_user(cursor, "fb_{}".format(data["id"]))
+
+            res = {
+                    "id": user["id"],
+                    "username": user["username"],
+                    "token": user["token"],
+                    "privilege": user["privilege"],
+                    "num_of_sing": user["num_of_sing"],
+                    "time_to_service": user["time_to_service"]
+                }
+            return res, 200
+
+    def auth_mac_addr(self, cursor, mac):
+        cursor.execute("SELECT * FROM users WHERE mac=%(mac)s", {"mac": mac})
+        res = ''
+        if cursor:
+            for row in cursor:
+                res = {
+                    'id': row[0],
+                    'username': row[1],
+                    'password': row[2],
+                    'Fname': row[3],
+                    'Lname': row[4],
+                    'phone': row[5],
+                    'token': row[6],
+                    'privilege': row[7],
+                    'num_of_sing': row[8],
+                    'time_to_service': row[9]
+                }
+
+        cursor.close()
+        return res
+
     def setSessionExpire(self, cnx, data):
         _id = data["id"]
+        nos = data["nos"]
+        tts = data["tts"]
         cursor = cnx.cursor()
-        cursor.execute("UPDATE users SET num_of_sing= '%s', time_to_service= '%s' WHERE id='%s'" %(0, 0, _id))
+        cursor.execute("UPDATE users SET num_of_sing= '%s', time_to_service= '%s' WHERE id='%s'" %(nos, tts, _id))
         cnx.commit()
 
         return {"message": 'ok'}, 200

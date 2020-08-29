@@ -1,11 +1,10 @@
 from flask import Flask, request, send_file, session
-import mysql.connector
 from mysql.connector import errorcode
-import os, datetime, json, time, moviepy.editor
 from resources import User, Video
 from config import CONFIG_DB, UPLOAD_FOLDER
 from flask_cors import CORS, cross_origin
-import requests
+import os, datetime, json, time, moviepy.editor
+import mysql.connector, requests, getmac
 
 application = Flask(__name__)
 CORS(application)
@@ -98,6 +97,62 @@ def user_auth():
     if request.method == "PUT":
         data = request.json
         return user.setSessionExpire(cnx, data)
+
+@application.route('/user/auth/gmail', methods=['POST'])
+def auth_gmail():
+    if not cnx.is_connected():
+        connect_database()
+
+    user = User()
+    cursor = cnx.cursor()
+
+    if request.method == 'POST':
+        data = request.json
+        return user.auth_gmail(cnx, cursor, data)
+
+@application.route('/user/auth/mac', methods=['GET'])
+def auth_mac():
+    if not cnx.is_connected():
+        connect_database()
+
+    user = User()
+    cursor = cnx.cursor()
+    
+    if request.method == "GET":
+        mac = getmac.get_mac_address()
+        res = user.auth_mac_addr(cursor, mac)
+        cnx.close()
+        if res:
+            return res, 200
+        else:
+            return {"msg": "not ok"}, 401
+    
+@application.route('/user/auth/line/callback', methods=['POST', 'GET'])
+def auth_line_callback():
+    if request.method == 'GET':
+        code = request.args['code']
+        state = request.args['state']
+
+        get_token_url = "https://api.line.me/v2/oauth/accessToken"
+        get_profile_url = "https://api.line.me/v2/profile"
+
+        payload = {
+            'grant_type': 'authorization_code',
+            'client_id': '1654879183',
+            'client_secret': 'ef7a32d804fe144f54d4cad9ceb3825b',
+            'code': code,
+            'redirect_uri': 'https://4a71d9bef197.ngrok.io/user/auth/line/callback'
+        }
+
+        get_token_headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        get_token_response = requests.request("POST", get_token_url, headers=get_token_headers, data=payload)
+        access_token = json.loads(get_token_response.content)["access_token"]
+ 
+        get_profile_headers = {'Authorization': 'Bearer {}'.format(access_token)}
+        get_profile_response = requests.request("GET", get_profile_url, headers=get_profile_headers)
+        profile = json.loads(get_profile_response.content)
+        
+        return {"token": json.loads(get_token_response.content), "profile": profile}, 200
 
 @application.route('/watch', methods=['GET'])
 def watch():
@@ -254,7 +309,7 @@ def addDownload():
 def checkOTP():   
     if request.method == "POST":
         data = request.json
-        print (data)
+        # print (data)
         url = "http://203.114.102.213/r18sendu.php"
 
         payload = {
