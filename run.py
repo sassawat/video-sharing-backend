@@ -173,7 +173,7 @@ def auth_line_callback():
         
         data = {
             "id": profile["userId"],
-            "password": 'P@ssw0rd',
+            "email": 'P@ssw0rd',
             "firstName": '',
             "lastName": '',
             "authToken": access_token

@@ -163,15 +163,7 @@ class User():
             sql = """INSERT INTO `users`(`id`, `username`, `password`, `Fname`, `Lname`, `phone`, `token`, `privilege`, `num_of_sing`, `time_to_service`)
                 VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             args = (
-                "sc_{}".format(data["id"]), 
-                data["password"], 
-                data["firstName"], 
-                data["lastName"], 
-                '-', 
-                data['authToken'], 
-                'user', 
-                5, 
-                60
+                "sc_{}".format(data["id"]), data["email"], data["firstName"], data["lastName"], '-', data['authToken'], 'user', 5, 60
             )
             # Execute
             cursor = cnx.cursor()
