@@ -123,7 +123,7 @@ def auth_line():
         data = {'id': id}
         return user.auth_social(cnx, cursor, data)
 
-@application.route('/user/auth/mac', methods=['GET'])
+@application.route('/user/auth/mac', methods=['GET', 'POST'])
 def auth_mac():
     if not cnx.is_connected():
         connect_database()
@@ -133,7 +133,16 @@ def auth_mac():
     
     if request.method == "GET":
         mac = getmac.get_mac_address()
-        res = user.auth_mac_addr(cursor, mac)
+        # res = user.auth_mac_addr(cursor, mac)
+        # cnx.close()
+        if mac:
+            return mac, 200
+        else:
+            return {"msg": "not ok"}, 401
+    
+    if request.method == "POST":
+        data = request.json
+        res = user.auth_mac_addr(cursor, data["mac"])
         cnx.close()
         if res:
             return res, 200

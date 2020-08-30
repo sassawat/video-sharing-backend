@@ -52,6 +52,9 @@ def get_db_user(cursor, username):
 def compareUserData(newData, currentData):
     lis = [item[1] for item in sorted(newData.items())]
     lis_2 = [item2[1] for item2 in sorted(currentData.items())]
+    print(lis)
+    print('>>>>>>>>>>>>>>')
+    print(lis_2)
     full_lis = sorted(newData.items())
     dic = {}
     for j in range(0, len(lis)):
@@ -117,6 +120,8 @@ class User():
                 cursor.execute("UPDATE users SET num_of_sing= '%s' WHERE username='%s'" %(v, username))
             elif k == "time_to_service":
                 cursor.execute("UPDATE users SET time_to_service= '%s' WHERE username='%s'" %(v, username))
+            elif k == "mac":
+                cursor.execute("UPDATE users SET mac= '%s' WHERE username='%s'" %(v, username))
 
         cnx.commit()
 
