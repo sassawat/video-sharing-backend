@@ -136,7 +136,7 @@ def auth_mac():
         # res = user.auth_mac_addr(cursor, mac)
         # cnx.close()
         if mac:
-            return mac, 200
+            return {'mac': mac}, 200
         else:
             return {"msg": "not ok"}, 401
     
