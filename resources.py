@@ -19,7 +19,7 @@ def get_db_all_user(cursor):
             'privilege': row[7],
             'num_of_sing': row[8],
             'time_to_service': row[9],
-            'mac': row[0]
+            'mac': row[10]
         }
         data.append(res)
 
@@ -44,7 +44,7 @@ def get_db_user(cursor, username):
             'privilege': row[7],
             'num_of_sing': row[8],
             'time_to_service': row[9],
-            'mac': row[0]
+            'mac': row[10]
         }
 
     cursor.close()
