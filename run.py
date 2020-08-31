@@ -142,6 +142,7 @@ def auth_mac():
     
     if request.method == "POST":
         data = request.json
+        print(data['mac'])
         res = user.auth_mac_addr(cursor, data["mac"])
         cnx.close()
         if res:
