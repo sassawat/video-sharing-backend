@@ -133,10 +133,11 @@ def auth_mac():
     
     if request.method == "GET":
         mac = getmac.get_mac_address()
-        
-        if mac_addr_file = open("src/asset/mac/mac-address.txt", "a"):
+
+        try:
+            mac_addr_file = open("src/asset/mac/mac-address.txt", "a")
             mac_addr_file.write(mac)
-        else:
+        except:
             mac_addr_file = open("src/asset/mac/mac-address.txt", "w")
             mac_addr_file.write(mac)
 
