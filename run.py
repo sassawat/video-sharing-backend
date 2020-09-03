@@ -133,6 +133,13 @@ def auth_mac():
     
     if request.method == "GET":
         mac = getmac.get_mac_address()
+        
+        if mac_addr_file = open("src/asset/mac/mac-address.txt", "a"):
+            mac_addr_file.write(mac)
+        else:
+            mac_addr_file = open("src/asset/mac/mac-address.txt", "w")
+            mac_addr_file.write(mac)
+
         # res = user.auth_mac_addr(cursor, mac)
         # cnx.close()
         if mac:
