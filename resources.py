@@ -204,7 +204,8 @@ class User():
                     'token': row[6],
                     'privilege': row[7],
                     'num_of_sing': row[8],
-                    'time_to_service': row[9]
+                    'time_to_service': row[9],
+                    'mac': row[10]
                 }
 
         cursor.close()
@@ -294,7 +295,7 @@ class Video():
 
     def search(self, cursor, name):
         data = []
-        cursor.execute('SELECT * FROM videos where CONCAT(name, artist) REGEXP "^%s"' %(name))
+        cursor.execute('SELECT * FROM videos where name REGEXP "^%s" OR artist REGEXP "^%s"' %(name, name))
 
         for row in cursor:
             res = {
